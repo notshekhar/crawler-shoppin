@@ -69,11 +69,18 @@ export async function addWebsite(
                 message: "Website already exists",
             })
         }
-        const reachable = await axios.get(url)
-        if (reachable.status !== 200) {
+        try {
+            const reachable = await axios.get(url)
+            if (reachable.status !== 200) {
+                throw new CustomHttpError({
+                    status: 400,
+                    message: "Website is not valid",
+                })
+            }
+        } catch (error) {
             throw new CustomHttpError({
                 status: 400,
-                message: "Website is not reachable",
+                message: "Website is not valid",
             })
         }
         const [insertId] = await db.query(
