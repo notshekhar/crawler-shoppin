@@ -26,7 +26,7 @@ export default class SqliteQueue<T> {
 
     constructor(queueName: string, options: SqliteQueueOptions = {}) {
         this.maxAttempts = 3
-        this.pollingInterval = 100
+        this.pollingInterval = 5
         this.sequelize = new Sequelize({
             dialect: "sqlite",
             storage: `${queueName}.sqlite`,
@@ -100,26 +100,27 @@ export default class SqliteQueue<T> {
         }
     }
 
-    private async getNextJob(): Promise<JobAttributes<T> | null> {
-        const job = (await this.sequelize.query(
+    private async getNextNJob(n: number): Promise<JobAttributes<T>[]> {
+        const jobs = (await this.sequelize.query(
             `
                 SELECT *
                 FROM jobs
-                WHERE status in ('pending', 'failed') AND attempts < :maxAttempts 
+                WHERE status in ('pending', 'failed') AND attempts < :maxAttempts
                 ORDER BY attempts ASC
-                LIMIT 1;
+                LIMIT :n;
             `,
             {
                 replacements: {
                     maxAttempts: this.maxAttempts,
+                    n,
                 },
                 type: QueryTypes.SELECT,
             }
         )) as JobAttributes<string>[]
-        if (job.length === 0) {
-            return null
-        }
-        const data = { ...job[0], data: JSON.parse(job[0].data) as T }
+
+        const data = jobs.map((job) => {
+            return { ...job, data: JSON.parse(job.data) as T }
+        })
         return data
     }
 
@@ -168,6 +169,7 @@ export default class SqliteQueue<T> {
         processor: (data: JobAttributes<T>, cb: (error?: Error) => void) => void
     ): Promise<void> {
         try {
+            await this.markJobActive(job.id)
             await processor(job, async (error) => {
                 try {
                     if (error) {
@@ -193,40 +195,34 @@ export default class SqliteQueue<T> {
     }
 
     async process(
-        processor: (job: JobAttributes<T>, cb: (error?: Error) => void) => void
+        processor: (job: JobAttributes<T>, cb: (error?: Error) => void) => void,
+        concurrency: number = 1
     ): Promise<void> {
-        const concurrency = 1
         if (concurrency <= 0) {
             throw new Error("Concurrency must be positive")
         }
 
-        const worker = async () => {
-            while (true) {
-                try {
-                    const job = await this.getNextJob()
-                    if (!job) {
-                        await new Promise((resolve) =>
-                            setTimeout(resolve, this.pollingInterval)
-                        )
-                        continue
-                    }
-                    await this.markJobActive(job.id)
-                    await this.processJob(job, processor)
+        while (true) {
+            try {
+                const jobs = await this.getNextNJob(concurrency)
+                if (jobs.length === 0) {
                     await new Promise((resolve) =>
                         setTimeout(resolve, this.pollingInterval)
                     )
-                } catch (error) {
-                    console.error("Worker error:", error)
-                    await new Promise((resolve) =>
-                        setTimeout(resolve, this.pollingInterval)
-                    )
+                    continue
                 }
+                await Promise.all(
+                    jobs.map((job) => this.processJob(job, processor))
+                )
+                await new Promise((resolve) =>
+                    setTimeout(resolve, this.pollingInterval)
+                )
+            } catch (error) {
+                console.error("Worker error:", error)
+                await new Promise((resolve) =>
+                    setTimeout(resolve, this.pollingInterval)
+                )
             }
         }
-
-        const workers = Array(concurrency)
-            .fill(null)
-            .map(() => worker())
-        await Promise.all(workers)
     }
 }
