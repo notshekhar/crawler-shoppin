@@ -26,7 +26,7 @@ export default class SqliteQueue<T> {
 
     constructor(queueName: string, options: SqliteQueueOptions = {}) {
         this.maxAttempts = 3
-        this.pollingInterval = 400
+        this.pollingInterval = 100
         this.sequelize = new Sequelize({
             dialect: "sqlite",
             storage: `${queueName}.sqlite`,
@@ -74,23 +74,9 @@ export default class SqliteQueue<T> {
         `
         await this.sequelize.query(update_jobs_updated_at_trigger)
     }
-    private async createStalledJobEvent() {
-        const create_stalled_job_event = `
-            CREATE EVENT IF NOT EXISTS stalled_jobs
-            ON SCHEDULE EVERY 1 MINUTE
-            DO
-            BEGIN
-                UPDATE jobs
-                SET status = 'stalled'
-                WHERE status = 'active' AND started_at < DATETIME('now', '-10 minute');
-            END;
-        `
-        await this.sequelize.query(create_stalled_job_event)
-    }
     private async init(options: SqliteQueueOptions = {}) {
         await this.createJobTable()
         await this.createUpdateTrigger()
-        await this.createStalledJobEvent()
         this.setMaxAttempts(options.maxAttempts)
         this.setPollingInterval(options.pollingInterval)
     }
