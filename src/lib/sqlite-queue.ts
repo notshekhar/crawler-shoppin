@@ -74,9 +74,23 @@ export default class SqliteQueue<T> {
         `
         await this.sequelize.query(update_jobs_updated_at_trigger)
     }
+    private async createStalledJobEvent() {
+        const create_stalled_job_event = `
+            CREATE EVENT IF NOT EXISTS stalled_jobs
+            ON SCHEDULE EVERY 1 MINUTE
+            DO
+            BEGIN
+                UPDATE jobs
+                SET status = 'stalled'
+                WHERE status = 'active' AND started_at < DATETIME('now', '-10 minute');
+            END;
+        `
+        await this.sequelize.query(create_stalled_job_event)
+    }
     private async init(options: SqliteQueueOptions = {}) {
         await this.createJobTable()
         await this.createUpdateTrigger()
+        await this.createStalledJobEvent()
         this.setMaxAttempts(options.maxAttempts)
         this.setPollingInterval(options.pollingInterval)
     }
@@ -131,7 +145,10 @@ export default class SqliteQueue<T> {
                     attempts = attempts + 1
                 WHERE id = :id;
             `,
-            { replacements: { id: jobId }, type: QueryTypes.UPDATE }
+            {
+                replacements: { id: jobId },
+                type: QueryTypes.UPDATE,
+            }
         )
     }
 
@@ -165,7 +182,6 @@ export default class SqliteQueue<T> {
         processor: (data: JobAttributes<T>, cb: (error?: Error) => void) => void
     ): Promise<void> {
         try {
-            await this.markJobActive(job.id)
             await processor(job, async (error) => {
                 try {
                     if (error) {
@@ -191,9 +207,9 @@ export default class SqliteQueue<T> {
     }
 
     async process(
-        processor: (job: JobAttributes<T>, cb: (error?: Error) => void) => void,
-        concurrency: number = 1
+        processor: (job: JobAttributes<T>, cb: (error?: Error) => void) => void
     ): Promise<void> {
+        const concurrency = 1
         if (concurrency <= 0) {
             throw new Error("Concurrency must be positive")
         }
@@ -208,6 +224,7 @@ export default class SqliteQueue<T> {
                         )
                         continue
                     }
+                    await this.markJobActive(job.id)
                     await this.processJob(job, processor)
                     await new Promise((resolve) =>
                         setTimeout(resolve, this.pollingInterval)

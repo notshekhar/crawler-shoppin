@@ -16,6 +16,7 @@ exampleQueue.add({
 console.log("Queue started")
 exampleQueue.process(async (job, done) => {
     const data = job.data
+    console.log(job.id)
     if (data.exampleData === "example-fail") {
         console.log("Failing job")
         done(new Error("Example error"))
@@ -23,7 +24,7 @@ exampleQueue.process(async (job, done) => {
         console.log("Completing job")
         done()
     }
-}, 1)
+})
 
 setTimeout(() => {
     exampleQueue.add({

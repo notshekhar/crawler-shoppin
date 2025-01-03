@@ -7,8 +7,18 @@ export async function init_db() {
         `
             CREATE TABLE IF NOT EXISTS websites (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                url TEXT NOT NULL UNIQUE
-            )
+                url TEXT NOT NULL UNIQUE,
+                status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'inactive')),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            
+            CREATE TRIGGER update_timestamp_websites
+            AFTER UPDATE
+            ON websites
+            BEGIN
+                UPDATE websites SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+            END
         `,
         {
             type: QueryTypes.RAW,
