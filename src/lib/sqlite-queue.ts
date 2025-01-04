@@ -2,7 +2,7 @@ import { QueryTypes, Sequelize, Transaction } from "sequelize"
 
 type JobStatus = "pending" | "active" | "completed" | "failed" | "stalled"
 
-interface JobAttributes<T> {
+export interface JobAttributes<T> {
     id: number
     status: JobStatus
     data: T
@@ -193,6 +193,9 @@ export default class SqliteQueue<T> {
             }
         }
     }
+    private async sleep(ms: number) {
+        return new Promise((resolve) => setTimeout(resolve, ms))
+    }
 
     async process(
         processor: (job: JobAttributes<T>, cb: (error?: Error) => void) => void,
@@ -201,27 +204,22 @@ export default class SqliteQueue<T> {
         if (concurrency <= 0) {
             throw new Error("Concurrency must be positive")
         }
+        await this.sleep(2000)
 
         while (true) {
             try {
                 const jobs = await this.getNextNJob(concurrency)
                 if (jobs.length === 0) {
-                    await new Promise((resolve) =>
-                        setTimeout(resolve, this.pollingInterval)
-                    )
+                    await this.sleep(this.pollingInterval)
                     continue
                 }
                 await Promise.all(
                     jobs.map((job) => this.processJob(job, processor))
                 )
-                await new Promise((resolve) =>
-                    setTimeout(resolve, this.pollingInterval)
-                )
+                await this.sleep(this.pollingInterval)
             } catch (error) {
                 console.error("Worker error:", error)
-                await new Promise((resolve) =>
-                    setTimeout(resolve, this.pollingInterval)
-                )
+                await this.sleep(this.pollingInterval)
             }
         }
     }

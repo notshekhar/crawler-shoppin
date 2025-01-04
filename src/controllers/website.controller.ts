@@ -3,6 +3,7 @@ import db from "../configs/db.config"
 import { QueryTypes } from "sequelize"
 import CustomHttpError from "../utils/custom-http-error"
 import axios from "axios"
+import { crawlWebsiteQueue } from "../queues"
 
 export async function getAllWebsites(
     request: Request,
@@ -102,6 +103,101 @@ export async function addWebsite(
         })
     } catch (error) {
         await transaction.rollback()
+        console.log(error)
+        next(error)
+    }
+}
+
+export async function deleteWebsite(
+    request: Request,
+    response: Response,
+    next: NextFunction
+) {
+    const transaction = await db.transaction()
+    try {
+        const { id } = request.params
+        if (!id) {
+            throw new CustomHttpError({
+                status: 400,
+                message: "id is required",
+            })
+        }
+        const website = await db.query(
+            `SELECT * FROM websites WHERE id = :id`,
+            {
+                replacements: { id },
+                type: QueryTypes.SELECT,
+                transaction,
+            }
+        )
+        if (website.length === 0) {
+            throw new CustomHttpError({
+                status: 400,
+                message: "Website not found",
+            })
+        }
+        await db.query(`DELETE FROM websites WHERE id = :id`, {
+            replacements: { id },
+            type: QueryTypes.DELETE,
+            transaction,
+        })
+        await transaction.commit()
+        response.json({
+            status: 200,
+            message: "ok",
+            data: {
+                id,
+            },
+        })
+    } catch (error) {
+        await transaction.rollback()
+        console.log(error)
+        next(error)
+    }
+}
+
+export async function startCrawling(
+    request: Request,
+    response: Response,
+    next: NextFunction
+) {
+    try {
+        const { id } = request.params
+        if (!id) {
+            throw new CustomHttpError({
+                status: 400,
+                message: "id is required",
+            })
+        }
+        const website = (await db.query(
+            `SELECT * FROM websites WHERE id = :id`,
+            {
+                replacements: { id },
+                type: QueryTypes.SELECT,
+            }
+        )) as { url: string }[]
+
+        if (website.length === 0) {
+            throw new CustomHttpError({
+                status: 400,
+                message: "Website not found",
+            })
+        }
+        // add the job to the queue
+        crawlWebsiteQueue.add({
+            url: website[0].url,
+            websiteId: Number(id),
+            parentWebsite: website[0].url,
+        })
+
+        response.json({
+            status: 200,
+            message: "ok",
+            data: {
+                id,
+            },
+        })
+    } catch (error) {
         console.log(error)
         next(error)
     }

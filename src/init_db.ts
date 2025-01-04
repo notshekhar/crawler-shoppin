@@ -19,38 +19,29 @@ export async function init_db() {
             BEGIN
                 UPDATE websites SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
             END
-        `,
-        {
-            type: QueryTypes.RAW,
-        }
+        `
     )
     /** Website all crawled urls */
     await db.query(
         `
             CREATE TABLE IF NOT EXISTS crawled_urls (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                url TEXT NOT NULL,
+                url TEXT NOT NULL UNIQUE,
                 website_id INTEGER NOT NULL,
-                FOREIGN KEY (website_id) REFERENCES websites(id)
+                FOREIGN KEY (website_id) REFERENCES websites(id) ON DELETE CASCADE
             )
-        `,
-        {
-            type: QueryTypes.RAW,
-        }
+        `
     )
     /** website product description page urls (crawled_urls processed ones) */
     await db.query(
         `
             CREATE TABLE IF NOT EXISTS product_description_urls (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                url TEXT NOT NULL,
+                url TEXT NOT NULL UNIQUE,
                 website_id INTEGER NOT NULL,
                 meta JSON DEFAULT NULL,
-                FOREIGN KEY (website_id) REFERENCES websites(id)
+                FOREIGN KEY (website_id) REFERENCES websites(id) ON DELETE CASCADE
             )
-        `,
-        {
-            type: QueryTypes.RAW,
-        }
+        `
     )
 }

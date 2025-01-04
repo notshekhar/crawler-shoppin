@@ -7,7 +7,8 @@ import { init_db } from "./init_db"
 import {
     addWebsite,
     getAllWebsites,
-} from "./controllers/add-website.controller"
+    startCrawling,
+} from "./controllers/website.controller"
 
 const app = express()
 
@@ -29,6 +30,7 @@ app.get("/health", (request, response) => {
 
 app.get("/websites", getAllWebsites)
 app.post("/websites", addWebsite)
+app.get("/websites/crawl/:id", startCrawling)
 
 // @ts-ignore
 app.use(ErrorHandler)

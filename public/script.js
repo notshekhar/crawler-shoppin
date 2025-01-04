@@ -38,13 +38,13 @@ document
 
 function updateWebsiteList() {
     const tableBody = document.getElementById("websiteTableBody")
-    console.log(websites[0])
     const websitesHtml = websites
         .map(
             (site) => `
             <tr>
                 <td>${site.id}</td>
                 <td>${site.url}</td>
+                <td><button onclick="crawlWebsite(${site.id})">Start Crawl</button></td>
             </tr>
         `
         )
@@ -54,3 +54,13 @@ function updateWebsiteList() {
 
 // Initial fetch
 fetchWebsites()
+
+function crawlWebsite(id) {
+    axios.get(`/websites/crawl/${id}`)
+        .then(response => {
+            console.log("Crawl started:", response.data)
+        })
+        .catch(error => {
+            console.error("Error:", error)
+        })
+}
