@@ -277,11 +277,57 @@ const exampleJsonLd2 = {
     },
 }
 
+const exampleJsonLd3 = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    url: "https://www.eneba.com/xbox-xbox-game-pass-core-6-months-key-india",
+    name: "Xbox Game Pass Core 6 months Key INDIA",
+    description:
+        "Say hello to Xbox Game Pass Core, the new era of Xbox gaming. Previously known as Xbox Live Gold, this evolved subscription service provides a richer,",
+    image: "https://products.eneba.games/resized-products/OoPAP1-hn7cPAjKAomYSkWocXcHOmw63Mrn9XhUJuyY_350x200_1x-0.jpg",
+    releaseDate: "2013-09-03",
+    offers: {
+        "@type": "AggregateOffer",
+        availability: "https://schema.org/InStock",
+        lowPrice: 1136.49,
+        priceCurrency: "INR",
+        offerCount: 27,
+        offers: [
+            {
+                "@type": "Offer",
+                availability: "https://schema.org/InStock",
+                price: 1395.43,
+                priceCurrency: "INR",
+            },
+            {
+                "@type": "Offer",
+                availability: "https://schema.org/InStock",
+                price: 1136.49,
+                priceCurrency: "INR",
+            },
+            {
+                "@type": "Offer",
+                availability: "https://schema.org/InStock",
+                price: 1137.38,
+                priceCurrency: "INR",
+            },
+            {
+                "@type": "Offer",
+                availability: "https://schema.org/InStock",
+                price: 1138.26,
+                priceCurrency: "INR",
+            },
+        ],
+    },
+}
+
 async function main() {
     const expanded = await jsonld.expand(exampleJsonLd)
     console.log(expanded)
     const expanded2 = await jsonld.expand(exampleJsonLd2)
     console.log(expanded2)
+    const expanded3 = await jsonld.expand(exampleJsonLd3)
+    console.log(expanded3)
 }
 
 main()
