@@ -36,16 +36,6 @@ document
         }
     })
 
-document
-    .getElementById("websiteTableBody")
-    .addEventListener("click", function (e) {
-        if (e.target && e.target.matches("a")) {
-            e.preventDefault()
-            const href = e.target.getAttribute("href")
-            console.log("Link clicked:", href)
-        }
-    })
-
 function updateWebsiteList() {
     const tableBody = document.getElementById("websiteTableBody")
     const websitesHtml = websites
@@ -53,7 +43,7 @@ function updateWebsiteList() {
             (site) => `
             <tr>
                 <td>${site.id}</td>
-                <td><a href="./detail.html?id=${site.id}">${site.url}</a></td>
+                <td><a href="/detail.html?id=${site.id}">${site.url}</a></td>
                 <td><button onclick="crawlWebsite(${site.id})">Start Crawl</button></td>
             </tr>
         `
@@ -103,8 +93,8 @@ function initDetailPage() {
     document.getElementById("crawlBtn").addEventListener("click", () => {
         axios
             .get(`/websites/crawl/${websiteId}`)
-            .then(res => console.log("Crawl started:", res.data))
-            .catch(err => console.error(err))
+            .then((res) => console.log("Crawl started:", res.data))
+            .catch((err) => console.error(err))
     })
 
     fetchProductUrls()
