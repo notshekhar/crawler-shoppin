@@ -72,15 +72,15 @@ function initDetailPage() {
 
     async function fetchProductUrls() {
         try {
-            const res = await axios.get(`/websites/${websiteId}/product-urls`)
+            const res = await axios.get(`/websites/${websiteId}`)
             const productList = document.getElementById("productList")
             productList.innerHTML = res.data.data
                 .map(
                     (item) => `
-                    <li> 
-                      <strong>ID:</strong> ${item.id},  
-                      <strong>URL:</strong> ${item.url},  
-                      <strong>Website ID:</strong> ${item.website_id} 
+                    <li style="border:1px solid #ccc; padding:8px; margin:4px 0; list-style:none;">
+                        <div><strong>ID:</strong> ${item.id}</div>
+                        <div><strong>URL:</strong> ${item.url}</div>
+                        <div><strong>Website ID:</strong> ${item.website_id}</div>
                     </li>
                 `
                 )
