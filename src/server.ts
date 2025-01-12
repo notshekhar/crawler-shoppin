@@ -6,6 +6,7 @@ import ErrorHandler from "./middlewares/ErrorHandler"
 import { init_db } from "./init_db"
 import {
     addWebsite,
+    getAllProductUrls,
     getAllWebsites,
     startCrawling,
 } from "./controllers/website.controller"
@@ -29,6 +30,7 @@ app.get("/health", (request, response) => {
 })
 
 app.get("/websites", getAllWebsites)
+app.get("/websites/:id", getAllProductUrls)
 app.post("/websites", addWebsite)
 app.get("/websites/crawl/:id", startCrawling)
 

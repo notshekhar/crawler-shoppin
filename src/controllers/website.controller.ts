@@ -202,3 +202,39 @@ export async function startCrawling(
         next(error)
     }
 }
+
+export async function getAllProductUrls(
+    request: Request,
+    response: Response,
+    next: NextFunction
+) {
+    try {
+        const { id } = request.params
+        if (!id) {
+            throw new CustomHttpError({
+                status: 400,
+                message: "id is required",
+            })
+        }
+        const productUrls = (await db.query(
+            "select * from product_description_urls where website_id = :id",
+            {
+                replacements: { id },
+                type: QueryTypes.SELECT,
+            }
+        )) as {
+            id: number
+            url: string
+            website_id: number
+            meta: string
+        }[]
+        response.json({
+            status: 200,
+            message: "ok",
+            data: productUrls,
+        })
+    } catch (error: unknown) {
+        console.log(error)
+        next(error)
+    }
+}

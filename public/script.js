@@ -36,6 +36,16 @@ document
         }
     })
 
+document
+    .getElementById("websiteTableBody")
+    .addEventListener("click", function (e) {
+        if (e.target && e.target.matches("a")) {
+            e.preventDefault()
+            const href = e.target.getAttribute("href")
+            console.log("Link clicked:", href)
+        }
+    })
+
 function updateWebsiteList() {
     const tableBody = document.getElementById("websiteTableBody")
     const websitesHtml = websites
@@ -43,7 +53,7 @@ function updateWebsiteList() {
             (site) => `
             <tr>
                 <td>${site.id}</td>
-                <td>${site.url}</td>
+                <td><a href="./detail.html?id=${site.id}">${site.url}</a></td>
                 <td><button onclick="crawlWebsite(${site.id})">Start Crawl</button></td>
             </tr>
         `
@@ -56,11 +66,46 @@ function updateWebsiteList() {
 fetchWebsites()
 
 function crawlWebsite(id) {
-    axios.get(`/websites/crawl/${id}`)
-        .then(response => {
+    axios
+        .get(`/websites/crawl/${id}`)
+        .then((response) => {
             console.log("Crawl started:", response.data)
         })
-        .catch(error => {
+        .catch((error) => {
             console.error("Error:", error)
         })
+}
+
+function initDetailPage() {
+    const params = new URLSearchParams(window.location.search)
+    const websiteId = params.get("id")
+
+    async function fetchProductUrls() {
+        try {
+            const res = await axios.get(`/websites/${websiteId}/product-urls`)
+            const productList = document.getElementById("productList")
+            productList.innerHTML = res.data.data
+                .map(
+                    (item) => `
+                    <li> 
+                      <strong>ID:</strong> ${item.id},  
+                      <strong>URL:</strong> ${item.url},  
+                      <strong>Website ID:</strong> ${item.website_id} 
+                    </li>
+                `
+                )
+                .join("")
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    document.getElementById("crawlBtn").addEventListener("click", () => {
+        axios
+            .get(`/websites/crawl/${websiteId}`)
+            .then(res => console.log("Crawl started:", res.data))
+            .catch(err => console.error(err))
+    })
+
+    fetchProductUrls()
 }
